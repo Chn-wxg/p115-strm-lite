@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+import logging
 from pathlib import Path, PurePosixPath
 
 from .config import AppConfig, SyncPath
 from .p115 import P115Service, PanFile
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -14,7 +17,9 @@ class SyncResult:
     written: int = 0
     skipped: int = 0
     failed: int = 0
+    stale: int = 0
     limited: bool = False
+    details: list[dict] | None = None
 
 
 class StrmSyncService:
@@ -22,13 +27,17 @@ class StrmSyncService:
         self.config = config
         self.p115 = p115
 
+    @staticmethod
+    def _new_result() -> SyncResult:
+        return SyncResult(details=[])
+
     def sync_all(
         self,
         dry_run: bool = False,
         force_overwrite: bool = False,
         selected_path_indexes: list[int] | None = None,
     ) -> SyncResult:
-        result = SyncResult()
+        result = self._new_result()
         selected = set(selected_path_indexes) if selected_path_indexes else None
         for index, item in enumerate(self.config.sync.paths):
             if selected is not None and index not in selected:
@@ -43,7 +52,9 @@ class StrmSyncService:
             result.written += partial.written
             result.skipped += partial.skipped
             result.failed += partial.failed
+            result.stale += partial.stale
             result.limited = result.limited or partial.limited
+            result.details.extend(partial.details or [])
             if self._limit_reached(result):
                 result.limited = True
                 break
@@ -56,10 +67,11 @@ class StrmSyncService:
         force_overwrite: bool = False,
         remaining: int | None = None,
     ) -> SyncResult:
-        result = SyncResult()
+        result = self._new_result()
         if remaining == 0:
             result.limited = True
             return result
+        matched_targets: set[Path] = set()
         for pan_file in self.p115.iter_files(sync_path.pan_path):
             if self._limit_reached(result, remaining=remaining):
                 result.limited = True
@@ -67,16 +79,32 @@ class StrmSyncService:
             result.scanned += 1
             if not self._should_generate(pan_file):
                 result.skipped += 1
+                self._record_detail(
+                    result,
+                    status="skipped",
+                    sync_path=sync_path,
+                    pan_file=pan_file,
+                    reason="unsupported extension or below min_file_size",
+                )
                 self._throttle(result)
                 continue
             try:
                 target = self._target_path(sync_path, pan_file)
+                matched_targets.add(target)
                 if (
                     target.exists()
                     and not force_overwrite
                     and not self.config.strm.overwrite
                 ):
                     result.skipped += 1
+                    self._record_detail(
+                        result,
+                        status="skipped",
+                        sync_path=sync_path,
+                        pan_file=pan_file,
+                        target=target,
+                        reason="strm already exists",
+                    )
                     self._throttle(result)
                     continue
                 if not dry_run:
@@ -87,10 +115,91 @@ class StrmSyncService:
                         newline="\n",
                     )
                 result.written += 1
-            except Exception:
+                self._record_detail(
+                    result,
+                    status="written",
+                    sync_path=sync_path,
+                    pan_file=pan_file,
+                    target=target,
+                    reason="dry run" if dry_run else "",
+                )
+            except Exception as exc:
                 result.failed += 1
+                self._record_detail(
+                    result,
+                    status="failed",
+                    sync_path=sync_path,
+                    pan_file=pan_file,
+                    error=str(exc),
+                )
             self._throttle(result)
+        if force_overwrite:
+            self._record_stale_files(result, sync_path, matched_targets)
         return result
+
+    def _record_detail(
+        self,
+        result: SyncResult,
+        status: str,
+        sync_path: SyncPath,
+        pan_file: PanFile,
+        target: Path | None = None,
+        reason: str = "",
+        error: str = "",
+    ) -> None:
+        detail = {
+            "status": status,
+            "name": pan_file.name,
+            "pan_path": pan_file.path,
+            "local_path": str(target) if target else "",
+            "pickcode": pan_file.pickcode,
+            "size": pan_file.size,
+            "library_pan_path": sync_path.pan_path,
+            "library_local_path": sync_path.local_path,
+        }
+        if reason:
+            detail["reason"] = reason
+        if error:
+            detail["error"] = error
+        result.details.append(detail)
+        logger.info(
+            "file %s: %s -> %s%s%s",
+            status,
+            pan_file.path,
+            detail["local_path"] or "-",
+            f" reason={reason}" if reason else "",
+            f" error={error}" if error else "",
+        )
+
+    def _record_stale_files(
+        self,
+        result: SyncResult,
+        sync_path: SyncPath,
+        matched_targets: set[Path],
+    ) -> None:
+        root = Path(sync_path.local_path)
+        if not root.exists():
+            return
+        for file in root.rglob("*.strm"):
+            if file in matched_targets:
+                continue
+            result.stale += 1
+            detail = {
+                "status": "stale",
+                "name": file.name,
+                "pan_path": "",
+                "local_path": str(file),
+                "pickcode": "",
+                "size": file.stat().st_size if file.exists() else 0,
+                "library_pan_path": sync_path.pan_path,
+                "library_local_path": sync_path.local_path,
+                "reason": "local strm did not match any scanned 115 file",
+            }
+            result.details.append(detail)
+            logger.info(
+                "file stale: %s reason=local strm did not match any scanned 115 file",
+                file,
+            )
 
     def _limit_reached(self, result: SyncResult, remaining: int | None = None) -> bool:
         limit = self.config.sync.max_files_per_run if remaining is None else remaining

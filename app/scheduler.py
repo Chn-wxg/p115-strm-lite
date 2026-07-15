@@ -75,9 +75,11 @@ class SyncScheduler:
                     "written": result.written,
                     "skipped": result.skipped,
                     "failed": result.failed,
+                    "stale": result.stale,
                     "limited": result.limited,
                     "refresh_requested": refresh_media,
                     "media_refresh": refresh_ok,
+                    "details": result.details or [],
                 }
                 self.last_result = data
                 logger.info("sync complete: %s", data)

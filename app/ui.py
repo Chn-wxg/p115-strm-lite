@@ -211,6 +211,41 @@ PAGE_HTML = """
       line-height: 1.5;
       white-space: pre-wrap;
     }
+    .result-summary {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(74px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+      color: #111827;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      white-space: normal;
+    }
+    .result-card {
+      border-radius: 7px;
+      background: #f9fafb;
+      padding: 8px;
+      color: #374151;
+    }
+    .result-card strong { display: block; font-size: 18px; color: #111827; }
+    .detail-line {
+      padding: 7px 0;
+      border-top: 1px solid #263244;
+      white-space: normal;
+      word-break: break-all;
+    }
+    .detail-line:first-child { border-top: 0; }
+    .detail-status { font-weight: 800; margin-right: 8px; }
+    .detail-status.written { color: #86efac; }
+    .detail-status.skipped { color: #fde68a; }
+    .detail-status.failed { color: #fca5a5; }
+    .detail-status.stale { color: #93c5fd; }
+    .raw-json {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #263244;
+      color: #9ca3af;
+      white-space: pre-wrap;
+    }
     .dock {
       position: fixed;
       left: 0;
@@ -323,7 +358,49 @@ PAGE_HTML = """
     const buttons = [...document.querySelectorAll("button")];
 
     function show(data) {
-      $("result").textContent = JSON.stringify(data, null, 2);
+      if (!data || !Array.isArray(data.details)) {
+        $("result").textContent = JSON.stringify(data, null, 2);
+        return;
+      }
+      const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[char]));
+      const mode = data.mode === "full" ? "全量" : "增量";
+      const refresh = data.media_refresh === true ? "成功" : (data.refresh_requested ? "失败/未启用" : "未刷新");
+      const details = data.details.map((item) => {
+        const label = {
+          written: "写入",
+          skipped: "跳过",
+          failed: "失败",
+          stale: "残留",
+        }[item.status] || item.status;
+        const reason = item.reason ? ` | 原因：${item.reason}` : "";
+        const error = item.error ? ` | 错误：${item.error}` : "";
+        const local = item.local_path ? ` -> ${item.local_path}` : "";
+        const pan = item.pan_path || "(本地残留文件)";
+        return `<div class="detail-line">
+          <span class="detail-status ${esc(item.status)}">[${esc(label)}]</span>
+          <strong>${esc(item.name || "-")}</strong><br>
+          <span>${esc(pan + local + reason + error)}</span>
+        </div>`;
+      }).join("");
+      $("result").innerHTML = `
+        <div class="result-summary">
+          <div class="result-card">模式<strong>${mode}</strong></div>
+          <div class="result-card">扫描<strong>${data.scanned}</strong></div>
+          <div class="result-card">写入<strong>${data.written}</strong></div>
+          <div class="result-card">跳过<strong>${data.skipped}</strong></div>
+          <div class="result-card">失败<strong>${data.failed}</strong></div>
+          <div class="result-card">残留<strong>${data.stale || 0}</strong></div>
+        </div>
+        <div>媒体库刷新：${refresh}${data.limited ? " | 已达到单次扫描上限" : ""}</div>
+        ${details || "<div class='detail-line'>没有文件明细</div>"}
+        <div class="raw-json">${JSON.stringify(data, null, 2)}</div>
+      `;
     }
 
     function setBusy(busy) {
