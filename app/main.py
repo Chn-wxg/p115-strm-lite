@@ -84,8 +84,16 @@ async def api_status() -> dict:
 
 
 @app.post("/sync")
-async def sync(dry_run: bool = False) -> dict:
-    return await sync_scheduler.run_sync(dry_run=dry_run)
+async def sync(
+    dry_run: bool = False,
+    mode: str = "increment",
+    refresh_media: bool = True,
+) -> dict:
+    return await sync_scheduler.run_sync(
+        dry_run=dry_run,
+        mode=mode,
+        refresh_media=refresh_media,
+    )
 
 
 @app.post("/api/media/refresh")

@@ -22,12 +22,17 @@ class StrmSyncService:
         self.config = config
         self.p115 = p115
 
-    def sync_all(self, dry_run: bool = False) -> SyncResult:
+    def sync_all(
+        self,
+        dry_run: bool = False,
+        force_overwrite: bool = False,
+    ) -> SyncResult:
         result = SyncResult()
         for item in self.config.sync.paths:
             partial = self.sync_path(
                 item,
                 dry_run=dry_run,
+                force_overwrite=force_overwrite,
                 remaining=self._remaining_limit(result),
             )
             result.scanned += partial.scanned
@@ -44,6 +49,7 @@ class StrmSyncService:
         self,
         sync_path: SyncPath,
         dry_run: bool = False,
+        force_overwrite: bool = False,
         remaining: int | None = None,
     ) -> SyncResult:
         result = SyncResult()
@@ -61,7 +67,11 @@ class StrmSyncService:
                 continue
             try:
                 target = self._target_path(sync_path, pan_file)
-                if target.exists() and not self.config.strm.overwrite:
+                if (
+                    target.exists()
+                    and not force_overwrite
+                    and not self.config.strm.overwrite
+                ):
                     result.skipped += 1
                     self._throttle(result)
                     continue

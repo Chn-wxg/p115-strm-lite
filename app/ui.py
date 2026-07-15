@@ -11,7 +11,7 @@ PAGE_HTML = """
   <style>
     :root {
       --bg: #f7fbff;
-      --panel: rgba(255,255,255,.86);
+      --panel: rgba(255,255,255,.88);
       --line: #d9dee7;
       --text: #374151;
       --muted: #7a8190;
@@ -93,6 +93,9 @@ PAGE_HTML = """
       font-size: 12px;
       font-weight: 800;
       white-space: nowrap;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .green { background: #f0fdf4; color: var(--green); }
     .orange { background: #fffbeb; color: var(--orange); }
@@ -133,6 +136,40 @@ PAGE_HTML = """
       margin-bottom: 14px;
       line-height: 1.6;
     }
+    .control-grid {
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) minmax(220px, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .field {
+      min-height: 42px;
+      display: grid;
+      gap: 5px;
+    }
+    .field label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    select {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 700;
+    }
+    .checkline {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #626b7c;
+      font-weight: 700;
+    }
+    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--purple); }
     .actions {
       display: grid;
       grid-template-columns: repeat(4, minmax(110px, 1fr));
@@ -151,8 +188,8 @@ PAGE_HTML = """
     button.primary { color: #fff; background: var(--orange); border-color: var(--orange); }
     button:disabled { opacity: .58; cursor: wait; }
     .result {
-      min-height: 180px;
-      max-height: 340px;
+      min-height: 190px;
+      max-height: 360px;
       overflow: auto;
       padding: 12px;
       border-radius: 8px;
@@ -181,7 +218,7 @@ PAGE_HTML = """
     }
     @media (max-width: 920px) {
       .layout { grid-template-columns: 1fr; }
-      .actions { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .actions, .control-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -225,13 +262,29 @@ PAGE_HTML = """
           <div class="card-body">
             <div class="notice">
               <strong>i</strong>
-              <div>这里现在只保留已经接入后端的功能。同步默认带单次扫描上限和批次休眠，避免一次全量扫太猛。配置修改仍然通过 <code>config.yaml</code> 完成。</div>
+              <div>
+                增量同步只补缺失 STRM，不重写已存在文件；全量同步会在受控上限内重新生成 STRM。
+                媒体库刷新可以单独选择，避免每次同步都触发 Emby/Jellyfin 扫库。
+              </div>
+            </div>
+            <div class="control-grid">
+              <div class="field">
+                <label for="syncMode">同步模式</label>
+                <select id="syncMode">
+                  <option value="increment">增量同步：只补缺失 STRM</option>
+                  <option value="full">全量同步：重新生成 STRM</option>
+                </select>
+              </div>
+              <label class="checkline">
+                <input id="refreshAfterSync" type="checkbox" checked>
+                同步后刷新媒体库
+              </label>
             </div>
             <div class="actions">
               <button id="reload">刷新状态</button>
               <button id="dry">干跑预览</button>
-              <button id="refresh">刷新媒体库</button>
-              <button class="primary" id="sync">受控同步</button>
+              <button id="refresh">仅刷新媒体库</button>
+              <button class="primary" id="sync">开始同步</button>
             </div>
             <div class="result" id="result">等待操作...</div>
           </div>
@@ -268,10 +321,21 @@ PAGE_HTML = """
       el.className = "badge " + kind;
     }
 
+    function syncQuery(dryRun) {
+      const params = new URLSearchParams({
+        mode: $("syncMode").value,
+        dry_run: dryRun ? "true" : "false",
+        refresh_media: $("refreshAfterSync").checked ? "true" : "false",
+      });
+      return "/sync?" + params.toString();
+    }
+
     function render(data) {
       badge($("cookieState"), data.auth.has_p115_cookies ? "已连接" : "未配置", data.auth.has_p115_cookies ? "green" : "red");
       badge($("taskState"), data.scheduler.running ? "运行中" : "空闲", data.scheduler.running ? "orange" : "green");
       badge($("mediaRefreshState"), data.media_server.enabled ? "已启用" : "已禁用", data.media_server.enabled ? "green" : "gray");
+      $("refreshAfterSync").disabled = !data.media_server.enabled;
+      if (!data.media_server.enabled) $("refreshAfterSync").checked = false;
       $("fullCron").textContent = data.sync.full_cron || "-";
       $("incrementCron").textContent = data.sync.increment_cron || "-";
       $("publicUrl").textContent = data.server.public_url || "-";
@@ -314,8 +378,8 @@ PAGE_HTML = """
       }
     }
 
-    $("sync").onclick = () => run("/sync");
-    $("dry").onclick = () => run("/sync?dry_run=true");
+    $("sync").onclick = () => run(syncQuery(false));
+    $("dry").onclick = () => run(syncQuery(true));
     $("refresh").onclick = () => run("/api/media/refresh");
     $("reload").onclick = () => loadStatus().then(show).catch(show);
     loadStatus().catch(show);
