@@ -11,18 +11,16 @@ PAGE_HTML = """
   <style>
     :root {
       --bg: #f7fbff;
-      --panel: #ffffff;
-      --line: #e5e7eb;
-      --line-strong: #d6d9e0;
+      --panel: rgba(255,255,255,.86);
+      --line: #d9dee7;
       --text: #374151;
-      --muted: #8a8f99;
+      --muted: #7a8190;
       --purple: #8b5cf6;
       --blue: #0ea5e9;
       --green: #52c41a;
       --orange: #f59e0b;
       --red: #ff4d4f;
-      --cyan-soft: #e6f7ff;
-      --yellow-soft: #fff7e6;
+      --info: #e6f7ff;
       --shadow: 0 8px 22px rgba(15, 23, 42, .08);
     }
     * { box-sizing: border-box; }
@@ -30,9 +28,7 @@ PAGE_HTML = """
       margin: 0;
       min-height: 100vh;
       color: var(--text);
-      background:
-        linear-gradient(115deg, rgba(224, 247, 255, .9), rgba(255, 239, 246, .68) 46%, rgba(255, 255, 255, .96) 72%),
-        var(--bg);
+      background: linear-gradient(115deg, #e7f7ff, #fff1f7 44%, #fff 76%);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
     }
     header {
@@ -40,53 +36,52 @@ PAGE_HTML = """
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 0 16px;
-      color: #6b7280;
-      background: rgba(255, 255, 255, .55);
-      border-bottom: 1px solid rgba(214, 219, 229, .8);
-      font-weight: 700;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.65);
+      font-weight: 800;
+      color: #5f6675;
     }
+    .logo { color: var(--purple); }
     main { padding: 12px 12px 72px; }
     .layout {
       display: grid;
-      grid-template-columns: minmax(340px, 1fr) minmax(360px, 1fr);
+      grid-template-columns: minmax(360px, 1fr) minmax(420px, 1fr);
       gap: 24px;
       align-items: start;
     }
     .stack { display: grid; gap: 16px; }
     .card {
-      background: rgba(255, 255, 255, .82);
-      border: 1px solid var(--line-strong);
+      background: var(--panel);
+      border: 1px solid var(--line);
       border-radius: 14px;
       box-shadow: var(--shadow);
       overflow: hidden;
     }
     .card-title {
-      height: 34px;
+      min-height: 34px;
       display: flex;
       align-items: center;
-      gap: 8px;
       padding: 0 18px;
-      background: linear-gradient(110deg, rgba(219, 242, 255, .85), rgba(255, 239, 246, .76));
-      color: #6b7280;
-      font-size: 15px;
+      background: linear-gradient(110deg, rgba(219,242,255,.82), rgba(255,239,246,.75));
       font-weight: 800;
+      color: #536071;
     }
     .card-body { padding: 14px 18px; }
     .row {
-      min-height: 38px;
+      min-height: 39px;
       display: grid;
       grid-template-columns: 24px 1fr auto;
       gap: 10px;
       align-items: center;
-      border-bottom: 1px solid rgba(229, 231, 235, .8);
+      border-bottom: 1px solid rgba(217,222,231,.72);
     }
     .row:last-child { border-bottom: 0; }
     .icon { color: var(--purple); font-weight: 900; text-align: center; }
-    .label { color: #6b7280; }
-    .hint { color: var(--muted); font-size: 13px; margin-top: 3px; }
+    .label { color: #626b7c; }
+    .hint { color: var(--muted); font-size: 13px; line-height: 1.55; }
     .badge {
-      min-width: 52px;
+      min-width: 54px;
       min-height: 22px;
       display: inline-flex;
       align-items: center;
@@ -99,52 +94,20 @@ PAGE_HTML = """
       font-weight: 800;
       white-space: nowrap;
     }
-    .badge.green { background: #f0fdf4; color: var(--green); }
-    .badge.orange { background: #fffbeb; color: var(--orange); }
-    .badge.gray { background: #f3f4f6; color: #9ca3af; }
-    .badge.red { background: #fff1f2; color: var(--red); }
-    .user {
-      display: grid;
-      grid-template-columns: 44px 1fr auto;
-      align-items: center;
-      gap: 12px;
-      min-height: 54px;
-    }
-    .avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      background: linear-gradient(135deg, #c4b5fd, #67e8f9);
-      color: #fff;
-      font-weight: 900;
-    }
-    .progress {
-      height: 7px;
-      border-radius: 999px;
-      background: #ede9fe;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-    .bar {
-      width: 18%;
-      height: 100%;
-      background: linear-gradient(90deg, #8b5cf6, #38bdf8);
-    }
-    .path-block {
-      display: grid;
-      gap: 10px;
-    }
+    .green { background: #f0fdf4; color: var(--green); }
+    .orange { background: #fffbeb; color: var(--orange); }
+    .gray { background: #f3f4f6; color: #8a8f99; }
+    .red { background: #fff1f2; color: var(--red); }
+    .path-list { display: grid; gap: 10px; }
     .path-pair {
-      min-height: 56px;
       display: grid;
-      grid-template-columns: 1fr 46px 1fr;
+      grid-template-columns: 1fr 54px 1fr;
       gap: 10px;
       align-items: center;
+      min-height: 62px;
       padding: 10px 14px;
       border: 1px solid var(--line);
-      background: rgba(255, 255, 255, .68);
+      background: rgba(255,255,255,.68);
     }
     .path-box {
       display: grid;
@@ -154,83 +117,44 @@ PAGE_HTML = """
       min-width: 0;
     }
     code {
-      color: #6b7280;
-      background: transparent;
+      color: #5f6675;
       font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
       word-break: break-all;
     }
-    .switch-line {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(180px, 1fr));
-      gap: 18px;
-      margin-bottom: 16px;
-    }
-    .switch {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #7b7f89;
-      font-size: 15px;
-    }
-    .toggle {
-      width: 38px;
-      height: 20px;
-      border-radius: 999px;
-      background: #d1d5db;
-      position: relative;
-      flex: 0 0 auto;
-    }
-    .toggle::after {
-      content: "";
-      width: 18px;
-      height: 18px;
-      position: absolute;
-      top: 1px;
-      left: 1px;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
-    }
-    .toggle.on { background: #38bdf8; }
-    .toggle.on::after { left: 19px; }
     .notice {
       display: grid;
       grid-template-columns: 28px 1fr;
       gap: 8px;
       align-items: start;
       padding: 12px 16px;
-      border-radius: 6px;
-      background: var(--cyan-soft);
-      color: #1890ff;
-      margin-bottom: 16px;
+      border-radius: 7px;
+      background: var(--info);
+      color: #1677ff;
+      margin-bottom: 14px;
       line-height: 1.6;
     }
-    .notice.warn {
-      background: var(--yellow-soft);
-      color: #d48806;
-    }
-    .tabs {
+    .actions {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      border-bottom: 1px solid var(--line);
+      grid-template-columns: repeat(4, minmax(110px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
     }
-    .tab {
-      height: 42px;
-      display: grid;
-      place-items: center;
-      color: #777985;
-      font-weight: 700;
+    button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #6d28d9;
+      font-weight: 800;
+      cursor: pointer;
     }
-    .tab.active {
-      color: var(--purple);
-      border-bottom: 2px solid var(--purple);
-    }
+    button.primary { color: #fff; background: var(--orange); border-color: var(--orange); }
+    button:disabled { opacity: .58; cursor: wait; }
     .result {
-      min-height: 132px;
-      max-height: 260px;
+      min-height: 180px;
+      max-height: 340px;
       overflow: auto;
       padding: 12px;
-      border: 1px solid var(--line);
       border-radius: 8px;
       background: #111827;
       color: #e5e7eb;
@@ -248,125 +172,66 @@ PAGE_HTML = """
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      padding: 7px 12px;
-      background: rgba(255, 255, 255, .92);
-      border-top: 1px solid var(--line-strong);
-      box-shadow: 0 -8px 20px rgba(15, 23, 42, .08);
+      padding: 8px 14px;
+      background: rgba(255,255,255,.93);
+      border-top: 1px solid var(--line);
+      box-shadow: 0 -8px 20px rgba(15,23,42,.08);
+      color: var(--muted);
+      font-size: 13px;
     }
-    .dock .left, .dock .right { display: flex; flex-wrap: wrap; gap: 10px; }
-    button {
-      min-height: 34px;
-      border: 0;
-      border-radius: 7px;
-      padding: 0 12px;
-      background: transparent;
-      color: #7c3aed;
-      font-weight: 800;
-      cursor: pointer;
-    }
-    button.primary { color: var(--orange); }
-    button.save { color: var(--green); }
-    button.danger { color: var(--red); }
-    button:disabled { color: #a8a8b0; cursor: not-allowed; }
     @media (max-width: 920px) {
       .layout { grid-template-columns: 1fr; }
-      .switch-line { grid-template-columns: 1fr; }
-      .tabs { grid-template-columns: repeat(2, 1fr); }
+      .actions { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
     }
   </style>
 </head>
 <body>
-  <header>
-    <span class="icon">STRM</span>
-    <span>115网盘STRM助手</span>
-  </header>
-
+  <header><span class="logo">STRM</span><span>115网盘STRM助手</span></header>
   <main>
     <section class="layout">
       <div class="stack">
         <article class="card">
           <div class="card-title">系统状态</div>
           <div class="card-body">
-            <div class="row">
-              <span class="icon">P</span><span class="label">插件状态</span><span id="pluginState" class="badge green">已启用</span>
-            </div>
-            <div class="row">
-              <span class="icon">C</span><span class="label">115 Cookie 状态</span><span id="cookieState" class="badge gray">读取中</span>
-            </div>
-            <div class="row">
-              <span class="icon">T</span><span class="label">任务状态</span><span id="taskState" class="badge orange">读取中</span>
-            </div>
+            <div class="row"><span class="icon">P</span><span class="label">服务状态</span><span class="badge green">已启用</span></div>
+            <div class="row"><span class="icon">C</span><span class="label">115 Cookie</span><span id="cookieState" class="badge gray">读取中</span></div>
+            <div class="row"><span class="icon">T</span><span class="label">同步任务</span><span id="taskState" class="badge orange">读取中</span></div>
           </div>
         </article>
 
         <article class="card">
-          <div class="card-title">115账户信息</div>
+          <div class="card-title">同步配置</div>
           <div class="card-body">
-            <div class="user">
-              <div class="avatar">115</div>
-              <div>
-                <div id="accountName">匿名用户</div>
-                <div class="hint" id="cookieHint">Cookie 仅用于容器内请求，不会在页面显示明文</div>
-              </div>
-              <span id="vipState" class="badge gray">未检测</span>
-            </div>
-            <div class="progress"><div class="bar"></div></div>
-            <div class="hint">容量信息接口还没接，后续可以补成和 MP 一样的账号概览。</div>
+            <div class="row"><span class="icon">F</span><span class="label">全量同步 Cron</span><span id="fullCron" class="badge gray">-</span></div>
+            <div class="row"><span class="icon">I</span><span class="label">增量同步 Cron</span><span id="incrementCron" class="badge gray">-</span></div>
+            <div class="row"><span class="icon">M</span><span class="label">媒体库刷新</span><span id="mediaRefreshState" class="badge gray">读取中</span></div>
+            <div class="row"><span class="icon">U</span><span class="label">STRM 访问地址</span><span id="publicUrl" class="badge gray">-</span></div>
+            <div class="row"><span class="icon">L</span><span class="label">单次扫描上限</span><span id="scanLimit" class="badge gray">-</span></div>
+            <div class="row"><span class="icon">B</span><span class="label">批次休眠</span><span id="batchSleep" class="badge gray">-</span></div>
           </div>
         </article>
 
         <article class="card">
-          <div class="card-title">功能配置</div>
+          <div class="card-title">路径配置</div>
           <div class="card-body">
-            <div class="row">
-              <span class="icon">M</span><span class="label">监控 MP 整理</span><span class="badge gray">不适用</span>
-            </div>
-            <div class="row">
-              <span class="icon">F</span><span class="label">定时全量同步</span><span id="fullCron" class="badge green">已启用</span>
-            </div>
-            <div class="row">
-              <span class="icon">I</span><span class="label">定时增量同步</span><span id="incrementCron" class="badge green">已启用</span>
-            </div>
-            <div class="row">
-              <span class="icon">S</span><span class="label">媒体服务器刷新</span><span id="mediaRefreshState" class="badge gray">读取中</span>
-            </div>
-            <div class="row">
-              <span class="icon">Q</span><span class="label">扫码登录</span><span class="badge gray">暂未实现</span>
-            </div>
+            <div id="paths" class="path-list"></div>
           </div>
         </article>
       </div>
 
       <div class="stack">
         <article class="card">
-          <div class="card-title">路径配置</div>
-          <div class="card-body">
-            <div class="hint">同步路径映射</div>
-            <div id="paths" class="path-block"></div>
-          </div>
-        </article>
-
-        <article class="card">
-          <div class="tabs">
-            <div class="tab active">STRM同步</div>
-            <div class="tab">网盘管理</div>
-            <div class="tab">其他功能</div>
-            <div class="tab">系统配置</div>
-          </div>
+          <div class="card-title">手动控制</div>
           <div class="card-body">
             <div class="notice">
               <strong>i</strong>
-              <div>当前独立版负责扫描 115 网盘目录，并在本地目录生成 STRM 文件。配置修改仍通过 <code>config.yaml</code> 完成。</div>
+              <div>这里现在只保留已经接入后端的功能。同步默认带单次扫描上限和批次休眠，避免一次全量扫太猛。配置修改仍然通过 <code>config.yaml</code> 完成。</div>
             </div>
-            <div class="switch-line">
-              <div class="switch"><span class="toggle on"></span><span>启用</span></div>
-              <div class="switch"><span class="toggle" id="mediaToggle"></span><span>媒体服务器刷新</span></div>
-              <div class="switch"><span class="toggle"></span><span>STRM 自动刮削</span></div>
-            </div>
-            <div class="notice warn">
-              <strong>!</strong>
-              <div>清理失效 STRM、扫码登录、在线编辑配置还没有接入；先把同步和播放链路跑稳，再补这些重功能。</div>
+            <div class="actions">
+              <button id="reload">刷新状态</button>
+              <button id="dry">干跑预览</button>
+              <button id="refresh">刷新媒体库</button>
+              <button class="primary" id="sync">受控同步</button>
             </div>
             <div class="result" id="result">等待操作...</div>
           </div>
@@ -374,23 +239,14 @@ PAGE_HTML = """
       </div>
     </section>
   </main>
-
   <footer class="dock">
-    <div class="left">
-      <button id="reload">刷新状态</button>
-    </div>
-    <div class="right">
-      <button id="dry">干跑预览</button>
-      <button id="refresh">刷新媒体库</button>
-      <button class="primary" id="sync">全量同步</button>
-      <button class="save" id="save" disabled>保存配置</button>
-      <button class="danger" disabled>关闭</button>
-    </div>
+    <span>p115-strm-lite</span>
+    <span>页面每 10 秒自动刷新状态</span>
   </footer>
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const buttons = [...document.querySelectorAll("button:not([disabled])")];
+    const buttons = [...document.querySelectorAll("button")];
 
     function show(data) {
       $("result").textContent = JSON.stringify(data, null, 2);
@@ -416,11 +272,11 @@ PAGE_HTML = """
       badge($("cookieState"), data.auth.has_p115_cookies ? "已连接" : "未配置", data.auth.has_p115_cookies ? "green" : "red");
       badge($("taskState"), data.scheduler.running ? "运行中" : "空闲", data.scheduler.running ? "orange" : "green");
       badge($("mediaRefreshState"), data.media_server.enabled ? "已启用" : "已禁用", data.media_server.enabled ? "green" : "gray");
-      $("mediaToggle").className = data.media_server.enabled ? "toggle on" : "toggle";
-      $("fullCron").textContent = data.sync.full_cron || "未配置";
-      $("incrementCron").textContent = data.sync.increment_cron || "未配置";
-      $("accountName").textContent = data.auth.has_p115_cookies ? "Cookie 已配置" : "匿名用户";
-      $("vipState").textContent = data.auth.has_p115_cookies ? "待检测" : "未登录";
+      $("fullCron").textContent = data.sync.full_cron || "-";
+      $("incrementCron").textContent = data.sync.increment_cron || "-";
+      $("publicUrl").textContent = data.server.public_url || "-";
+      $("scanLimit").textContent = data.sync.max_files_per_run > 0 ? data.sync.max_files_per_run : "不限";
+      $("batchSleep").textContent = `${data.sync.batch_size} / ${data.sync.batch_sleep_seconds}s`;
 
       const paths = $("paths");
       paths.innerHTML = "";
@@ -441,6 +297,7 @@ PAGE_HTML = """
     async function loadStatus() {
       const data = await api("/api/status");
       render(data);
+      return data;
     }
 
     async function run(path) {
@@ -460,9 +317,9 @@ PAGE_HTML = """
     $("sync").onclick = () => run("/sync");
     $("dry").onclick = () => run("/sync?dry_run=true");
     $("refresh").onclick = () => run("/api/media/refresh");
-    $("reload").onclick = loadStatus;
+    $("reload").onclick = () => loadStatus().then(show).catch(show);
     loadStatus().catch(show);
-    setInterval(loadStatus, 10000);
+    setInterval(() => loadStatus().catch(show), 10000);
   </script>
 </body>
 </html>

@@ -29,11 +29,13 @@ strm:
 sync:
   full_cron: "0 3 * * *"
   increment_cron: "*/30 * * * *"
+  max_files_per_run: 5000
+  batch_size: 500
+  batch_sleep_seconds: 2
+  item_sleep_seconds: 0
   paths:
-    - pan_path: "/电影"
-      local_path: "/media/电影"
-    - pan_path: "/电视剧"
-      local_path: "/media/电视剧"
+    - pan_path: "/strm"
+      local_path: "/media"
 
 media_server:
   enabled: false
@@ -41,4 +43,3 @@ media_server:
   url: "http://127.0.0.1:8096"
   api_key: ""
   refresh_delay_seconds: 0
-

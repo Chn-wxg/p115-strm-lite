@@ -11,6 +11,54 @@ import yaml
 DEFAULT_CONFIG_PATH = Path(os.environ.get("P115_STRM_CONFIG", "/config/config.yaml"))
 
 
+DEFAULT_CONFIG_TEXT = """server:
+  public_url: "http://127.0.0.1:18080"
+
+auth:
+  p115_cookies: "UID=xxx; CID=xxx; SEID=xxx"
+
+strm:
+  media_ext:
+    - mp4
+    - mkv
+    - ts
+    - iso
+    - rmvb
+    - avi
+    - mov
+    - mpeg
+    - mpg
+    - wmv
+    - m4v
+    - flv
+    - m2ts
+  subtitle_ext:
+    - srt
+    - ass
+    - ssa
+  overwrite: false
+  min_file_size: 0
+
+sync:
+  full_cron: "0 3 * * *"
+  increment_cron: "*/30 * * * *"
+  max_files_per_run: 5000
+  batch_size: 500
+  batch_sleep_seconds: 2
+  item_sleep_seconds: 0
+  paths:
+    - pan_path: "/strm"
+      local_path: "/media"
+
+media_server:
+  enabled: false
+  type: "emby"
+  url: "http://127.0.0.1:8096"
+  api_key: ""
+  refresh_delay_seconds: 0
+"""
+
+
 @dataclass(slots=True)
 class ServerConfig:
     public_url: str = "http://127.0.0.1:18080"
@@ -63,6 +111,10 @@ class SyncPath:
 class SyncConfig:
     full_cron: str = "0 3 * * *"
     increment_cron: str = "*/30 * * * *"
+    max_files_per_run: int = 5000
+    batch_size: int = 500
+    batch_sleep_seconds: float = 2.0
+    item_sleep_seconds: float = 0.0
     paths: list[SyncPath] = field(default_factory=list)
 
 
@@ -93,9 +145,8 @@ def _section(data: dict[str, Any], key: str) -> dict[str, Any]:
 
 def load_config(path: Path = DEFAULT_CONFIG_PATH) -> AppConfig:
     if not path.exists():
-        raise FileNotFoundError(
-            f"Config file not found: {path}. Copy config.example.yaml to this path."
-        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(DEFAULT_CONFIG_TEXT, encoding="utf-8", newline="\n")
 
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(raw, dict):
@@ -118,8 +169,13 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> AppConfig:
         sync=SyncConfig(
             full_cron=str(sync_raw.get("full_cron", "0 3 * * *")),
             increment_cron=str(sync_raw.get("increment_cron", "*/30 * * * *")),
+            max_files_per_run=max(0, int(sync_raw.get("max_files_per_run", 5000))),
+            batch_size=max(0, int(sync_raw.get("batch_size", 500))),
+            batch_sleep_seconds=max(
+                0.0, float(sync_raw.get("batch_sleep_seconds", 2.0))
+            ),
+            item_sleep_seconds=max(0.0, float(sync_raw.get("item_sleep_seconds", 0.0))),
             paths=paths,
         ),
         media_server=MediaServerConfig(**_section(raw, "media_server")),
     )
-

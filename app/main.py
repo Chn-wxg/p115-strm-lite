@@ -41,6 +41,11 @@ async def index() -> str:
     return PAGE_HTML
 
 
+@app.head("/")
+async def index_head() -> dict:
+    return {}
+
+
 @app.get("/health")
 async def health() -> dict:
     return {"ok": True}
@@ -54,6 +59,10 @@ async def api_status() -> dict:
         "sync": {
             "full_cron": config.sync.full_cron,
             "increment_cron": config.sync.increment_cron,
+            "max_files_per_run": config.sync.max_files_per_run,
+            "batch_size": config.sync.batch_size,
+            "batch_sleep_seconds": config.sync.batch_sleep_seconds,
+            "item_sleep_seconds": config.sync.item_sleep_seconds,
             "paths": [
                 {"pan_path": item.pan_path, "local_path": item.local_path}
                 for item in config.sync.paths

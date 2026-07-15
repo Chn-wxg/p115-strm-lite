@@ -58,6 +58,7 @@ class SyncScheduler:
                     "written": result.written,
                     "skipped": result.skipped,
                     "failed": result.failed,
+                    "limited": result.limited,
                     "media_refresh": refresh_ok,
                 }
                 self.last_result = data
