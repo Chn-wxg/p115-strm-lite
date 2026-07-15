@@ -19,6 +19,9 @@ class SyncScheduler:
         self.refresher = refresher
         self.scheduler = AsyncIOScheduler(timezone="Asia/Shanghai")
         self.executor = ThreadPoolExecutor(max_workers=1)
+        self._lock = asyncio.Lock()
+        self.last_result: dict | None = None
+        self.running = False
 
     def start(self, full_cron: str, increment_cron: str) -> None:
         self.scheduler.add_job(
@@ -36,23 +39,54 @@ class SyncScheduler:
         self.scheduler.start()
 
     async def run_sync(self, dry_run: bool = False) -> dict:
-        loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(
-            self.executor,
-            lambda: self.sync_service.sync_all(dry_run=dry_run),
-        )
+        if self._lock.locked():
+            return {"running": True, "message": "sync already running"}
+
+        async with self._lock:
+            self.running = True
+            loop = asyncio.get_running_loop()
+            try:
+                result = await loop.run_in_executor(
+                    self.executor,
+                    lambda: self.sync_service.sync_all(dry_run=dry_run),
+                )
+                refresh_ok = await self.refresher.refresh()
+                data = {
+                    "running": False,
+                    "dry_run": dry_run,
+                    "scanned": result.scanned,
+                    "written": result.written,
+                    "skipped": result.skipped,
+                    "failed": result.failed,
+                    "media_refresh": refresh_ok,
+                }
+                self.last_result = data
+                logger.info("sync complete: %s", data)
+                return data
+            finally:
+                self.running = False
+
+    async def refresh_media_server(self) -> dict:
         refresh_ok = await self.refresher.refresh()
-        data = {
-            "scanned": result.scanned,
-            "written": result.written,
-            "skipped": result.skipped,
-            "failed": result.failed,
-            "media_refresh": refresh_ok,
+        return {"enabled": self.refresher.config.enabled, "media_refresh": refresh_ok}
+
+    def status(self) -> dict:
+        jobs = []
+        for job in self.scheduler.get_jobs():
+            jobs.append(
+                {
+                    "id": job.id,
+                    "next_run_time": job.next_run_time.isoformat()
+                    if job.next_run_time
+                    else None,
+                }
+            )
+        return {
+            "running": self.running,
+            "jobs": jobs,
+            "last_result": self.last_result,
         }
-        logger.info("sync complete: %s", data)
-        return data
 
     def shutdown(self) -> None:
         self.scheduler.shutdown(wait=False)
         self.executor.shutdown(wait=False, cancel_futures=True)
-
