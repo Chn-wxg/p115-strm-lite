@@ -26,9 +26,13 @@ class StrmSyncService:
         self,
         dry_run: bool = False,
         force_overwrite: bool = False,
+        selected_path_indexes: list[int] | None = None,
     ) -> SyncResult:
         result = SyncResult()
-        for item in self.config.sync.paths:
+        selected = set(selected_path_indexes) if selected_path_indexes else None
+        for index, item in enumerate(self.config.sync.paths):
+            if selected is not None and index not in selected:
+                continue
             partial = self.sync_path(
                 item,
                 dry_run=dry_run,

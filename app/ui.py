@@ -10,7 +10,6 @@ PAGE_HTML = """
   <title>115网盘STRM助手</title>
   <style>
     :root {
-      --bg: #f7fbff;
       --panel: rgba(255,255,255,.88);
       --line: #d9dee7;
       --text: #374151;
@@ -101,17 +100,19 @@ PAGE_HTML = """
     .orange { background: #fffbeb; color: var(--orange); }
     .gray { background: #f3f4f6; color: #8a8f99; }
     .red { background: #fff1f2; color: var(--red); }
-    .path-list { display: grid; gap: 10px; }
-    .path-pair {
+    .path-list, .library-list { display: grid; gap: 10px; }
+    .path-pair, .library-item {
       display: grid;
-      grid-template-columns: 1fr 54px 1fr;
       gap: 10px;
       align-items: center;
       min-height: 62px;
       padding: 10px 14px;
       border: 1px solid var(--line);
+      border-radius: 8px;
       background: rgba(255,255,255,.68);
     }
+    .path-pair { grid-template-columns: 1fr 54px 1fr; }
+    .library-item { grid-template-columns: 24px 120px 1fr; }
     .path-box {
       display: grid;
       grid-template-columns: 28px 1fr;
@@ -170,11 +171,21 @@ PAGE_HTML = """
       font-weight: 700;
     }
     input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--purple); }
+    .library-tools {
+      display: flex;
+      gap: 10px;
+      margin: 6px 0 10px;
+    }
+    .library-tools button {
+      min-height: 30px;
+      padding: 0 10px;
+      font-size: 13px;
+    }
     .actions {
       display: grid;
       grid-template-columns: repeat(4, minmax(110px, 1fr));
       gap: 10px;
-      margin-bottom: 14px;
+      margin: 14px 0;
     }
     button {
       min-height: 38px;
@@ -219,6 +230,7 @@ PAGE_HTML = """
     @media (max-width: 920px) {
       .layout { grid-template-columns: 1fr; }
       .actions, .control-grid { grid-template-columns: 1fr; }
+      .path-pair, .library-item { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -263,8 +275,7 @@ PAGE_HTML = """
             <div class="notice">
               <strong>i</strong>
               <div>
-                增量同步只补缺失 STRM，不重写已存在文件；全量同步会在受控上限内重新生成 STRM。
-                媒体库刷新可以单独选择，避免每次同步都触发 Emby/Jellyfin 扫库。
+                先选择媒体库，再选择增量或全量。增量只补缺失 STRM；全量会在受控上限内重写所选媒体库的 STRM。
               </div>
             </div>
             <div class="control-grid">
@@ -280,6 +291,16 @@ PAGE_HTML = """
                 同步后刷新媒体库
               </label>
             </div>
+
+            <div class="field">
+              <label>选择媒体库</label>
+              <div class="library-tools">
+                <button id="selectAll" type="button">全选</button>
+                <button id="selectNone" type="button">全不选</button>
+              </div>
+              <div id="libraries" class="library-list"></div>
+            </div>
+
             <div class="actions">
               <button id="reload">刷新状态</button>
               <button id="dry">干跑预览</button>
@@ -321,13 +342,36 @@ PAGE_HTML = """
       el.className = "badge " + kind;
     }
 
+    function checkedLibraryIndexes() {
+      return [...document.querySelectorAll(".library-check:checked")].map((input) => input.value);
+    }
+
     function syncQuery(dryRun) {
       const params = new URLSearchParams({
         mode: $("syncMode").value,
         dry_run: dryRun ? "true" : "false",
         refresh_media: $("refreshAfterSync").checked ? "true" : "false",
       });
+      for (const index of checkedLibraryIndexes()) params.append("path_index", index);
       return "/sync?" + params.toString();
+    }
+
+    function renderLibraries(pathsData) {
+      const selectedBefore = new Set(checkedLibraryIndexes());
+      const libraries = $("libraries");
+      libraries.innerHTML = "";
+      for (const item of pathsData) {
+        const checked = selectedBefore.size === 0 || selectedBefore.has(String(item.index));
+        const label = document.createElement("label");
+        label.className = "library-item";
+        label.innerHTML = `
+          <input class="library-check" type="checkbox" value="${item.index}" ${checked ? "checked" : ""}>
+          <strong>${item.label}</strong>
+          <span class="hint"><code>${item.pan_path}</code> -> <code>${item.local_path}</code></span>
+        `;
+        libraries.appendChild(label);
+      }
+      if (!pathsData.length) libraries.textContent = "未配置媒体库路径";
     }
 
     function render(data) {
@@ -355,6 +399,7 @@ PAGE_HTML = """
         paths.appendChild(div);
       }
       if (!data.sync.paths.length) paths.textContent = "未配置同步路径";
+      renderLibraries(data.sync.paths);
       if (data.scheduler.last_result) show(data.scheduler.last_result);
     }
 
@@ -365,6 +410,10 @@ PAGE_HTML = """
     }
 
     async function run(path) {
+      if (path.startsWith("/sync") && checkedLibraryIndexes().length === 0) {
+        show({ error: "请至少选择一个媒体库" });
+        return;
+      }
       setBusy(true);
       try {
         const data = await api(path, { method: "POST" });
@@ -382,6 +431,8 @@ PAGE_HTML = """
     $("dry").onclick = () => run(syncQuery(true));
     $("refresh").onclick = () => run("/api/media/refresh");
     $("reload").onclick = () => loadStatus().then(show).catch(show);
+    $("selectAll").onclick = () => document.querySelectorAll(".library-check").forEach((input) => input.checked = true);
+    $("selectNone").onclick = () => document.querySelectorAll(".library-check").forEach((input) => input.checked = false);
     loadStatus().catch(show);
     setInterval(() => loadStatus().catch(show), 10000);
   </script>

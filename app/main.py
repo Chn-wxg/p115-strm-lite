@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from pathlib import PurePosixPath
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from .config import load_config
@@ -24,6 +25,14 @@ refresher = MediaServerRefresher(config.media_server)
 sync_scheduler = SyncScheduler(sync_service, refresher)
 
 app = FastAPI(title="p115-strm-lite", version="0.1.0")
+
+
+def _path_label(pan_path: str, local_path: str) -> str:
+    for value in (local_path, pan_path):
+        name = PurePosixPath(value).name
+        if name:
+            return name
+    return "/"
 
 
 @app.on_event("startup")
@@ -64,8 +73,13 @@ async def api_status() -> dict:
             "batch_sleep_seconds": config.sync.batch_sleep_seconds,
             "item_sleep_seconds": config.sync.item_sleep_seconds,
             "paths": [
-                {"pan_path": item.pan_path, "local_path": item.local_path}
-                for item in config.sync.paths
+                {
+                    "index": index,
+                    "label": _path_label(item.pan_path, item.local_path),
+                    "pan_path": item.pan_path,
+                    "local_path": item.local_path,
+                }
+                for index, item in enumerate(config.sync.paths)
             ],
         },
         "strm": {
@@ -88,11 +102,13 @@ async def sync(
     dry_run: bool = False,
     mode: str = "increment",
     refresh_media: bool = True,
+    path_index: list[int] | None = Query(default=None),
 ) -> dict:
     return await sync_scheduler.run_sync(
         dry_run=dry_run,
         mode=mode,
         refresh_media=refresh_media,
+        path_indexes=path_index,
     )
 
 

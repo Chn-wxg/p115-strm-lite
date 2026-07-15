@@ -45,6 +45,7 @@ class SyncScheduler:
         dry_run: bool = False,
         mode: str = "increment",
         refresh_media: bool = True,
+        path_indexes: list[int] | None = None,
     ) -> dict:
         if self._lock.locked():
             return {"running": True, "message": "sync already running"}
@@ -60,6 +61,7 @@ class SyncScheduler:
                     lambda: self.sync_service.sync_all(
                         dry_run=dry_run,
                         force_overwrite=force_overwrite,
+                        selected_path_indexes=path_indexes,
                     ),
                 )
                 refresh_ok = await self.refresher.refresh() if refresh_media else None
@@ -68,6 +70,7 @@ class SyncScheduler:
                     "dry_run": dry_run,
                     "mode": normalized_mode,
                     "force_overwrite": force_overwrite,
+                    "path_indexes": path_indexes,
                     "scanned": result.scanned,
                     "written": result.written,
                     "skipped": result.skipped,
