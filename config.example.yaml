@@ -1,0 +1,44 @@
+server:
+  public_url: "http://127.0.0.1:18080"
+
+auth:
+  p115_cookies: "UID=xxx; CID=xxx; SEID=xxx"
+
+strm:
+  media_ext:
+    - mp4
+    - mkv
+    - ts
+    - iso
+    - rmvb
+    - avi
+    - mov
+    - mpeg
+    - mpg
+    - wmv
+    - m4v
+    - flv
+    - m2ts
+  subtitle_ext:
+    - srt
+    - ass
+    - ssa
+  overwrite: false
+  min_file_size: 0
+
+sync:
+  full_cron: "0 3 * * *"
+  increment_cron: "*/30 * * * *"
+  paths:
+    - pan_path: "/电影"
+      local_path: "/media/电影"
+    - pan_path: "/电视剧"
+      local_path: "/media/电视剧"
+
+media_server:
+  enabled: false
+  type: "emby"
+  url: "http://127.0.0.1:8096"
+  api_key: ""
+  refresh_delay_seconds: 0
+

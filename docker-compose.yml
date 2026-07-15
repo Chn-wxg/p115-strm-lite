@@ -1,0 +1,14 @@
+services:
+  p115-strm-lite:
+    build: .
+    container_name: p115-strm-lite
+    restart: unless-stopped
+    ports:
+      - "18080:8080"
+    volumes:
+      - ./config:/config
+      - /vol1/1000/media:/media
+    environment:
+      - TZ=Asia/Shanghai
+      - P115_STRM_CONFIG=/config/config.yaml
+
