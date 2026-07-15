@@ -30,7 +30,13 @@ cp config.example.yaml config/config.yaml
 启动：
 
 ```bash
-docker compose up -d --build
+docker compose up -d
+```
+
+也可以直接拉取镜像：
+
+```bash
+docker pull ghcr.io/chn-wxg/p115-strm-lite:latest
 ```
 
 健康检查：
@@ -70,4 +76,3 @@ sync:
 表示扫描 115 网盘 `/电影`，把 STRM 生成到容器内 `/media/电影`。
 
 Docker Compose 里需要把 FNOS 的媒体目录挂载到容器 `/media`。
-

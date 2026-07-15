@@ -1,6 +1,6 @@
 services:
   p115-strm-lite:
-    build: .
+    image: ghcr.io/chn-wxg/p115-strm-lite:latest
     container_name: p115-strm-lite
     restart: unless-stopped
     ports:
@@ -11,4 +11,3 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - P115_STRM_CONFIG=/config/config.yaml
-
